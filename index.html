@@ -1,0 +1,207 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        form {
+            max-width: 500px;
+            margin: auto;
+        }
+        input {
+            display: block;
+            margin: 10px 0;
+            width: 100%;
+            padding: 8px;
+        }
+        button {
+            margin-right: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h2>Project Management Form</h2>
+    <form id="projectForm">
+        <label for="projectID">Project ID:</label>
+        <input type="text" id="projectID" required>
+        <label for="projectName">Project Name:</label>
+        <input type="text" id="projectName" >
+        <label for="assignedTo">Assigned To:</label>
+        <input type="text" id="assignedTo" >
+        <label for="assignmentDate">Assignment Date:</label>
+        <input type="date" id="assignmentDate" >
+        <label for="deadline">Deadline:</label>
+        <input type="date" id="deadline" >
+        <button type="button" id="saveButton" >Save</button>
+        <button type="button" id="updateButton" >Update</button>
+        <button type="button" id="resetButton">Reset</button>
+    </form>
+
+    <script>
+        const dbUrl = "https://api.jsonpower.com/api/iml";
+        const dbToken = "90934387|-31949226759054759|90957185";
+
+        const projectForm = document.getElementById("projectForm");
+        const projectID = document.getElementById("projectID");
+        const projectName = document.getElementById("projectName");
+        const assignedTo = document.getElementById("assignedTo");
+        const assignmentDate = document.getElementById("assignmentDate");
+        const deadline = document.getElementById("deadline");
+        const saveButton = document.getElementById("saveButton");
+        const updateButton = document.getElementById("updateButton");
+        const resetButton = document.getElementById("resetButton");
+
+        // Utility: Enable/disable input fields
+        // function setFormState(disabled) {
+        //     projectName.disabled = disabled;
+        //     assignedTo.disabled = disabled;
+        //     assignmentDate.disabled = disabled;
+        //     deadline.disabled = disabled;
+        // }
+
+        // Reset the form
+        function resetForm() {
+            projectForm.reset();
+            setFormState(true);
+            saveButton.disabled = true;
+            updateButton.disabled = true;
+            projectID.disabled = false;
+            projectID.focus();
+        }
+
+        // Fetch project data
+        async function fetchProject(id) {
+            const response = await fetch(`${dbUrl}/get`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${dbToken}`
+                },
+                body: JSON.stringify({
+                    token: dbToken,
+                    dbName: "COLLEGE-DB",
+                    rel: "PROJECT-TABLE",
+                    cmd: "GET_BY_KEY",
+                    key: id
+                })
+            });
+            return response.ok ? await response.json() : null;
+        }
+
+        // Save new project data
+        async function saveProject(data) {
+            const response = await fetch(`${dbUrl}/put`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${dbToken}`
+                },
+                body: JSON.stringify({
+                    token: dbToken,
+                    dbName: "COLLEGE-DB",
+                    rel: "PROJECT-TABLE",
+                    data
+                })
+            });
+            return response.ok;
+        }
+
+        // Update existing project data
+        async function updateProject(data) {
+            const response = await fetch(`${dbUrl}/update`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${dbToken}`
+                },
+                body: JSON.stringify({
+                    token: dbToken,
+                    dbName: "COLLEGE-DB",
+                    rel: "PROJECT-TABLE",
+                    cmd: "UPDATE",
+                    data
+                })
+            });
+            return response.ok;
+        }
+
+        // Event listeners
+        projectID.addEventListener("blur", async () => {
+            const id = projectID.value.trim();
+            if (id) {
+                const project = await fetchProject(id);
+                if (project) {
+                    // Populate fields for update
+                    const data = project.data[0];
+                    projectName.value = data.ProjectName || "";
+                    assignedTo.value = data.AssignedTo || "";
+                    assignmentDate.value = data.AssignmentDate || "";
+                    deadline.value = data.Deadline || "";
+
+                    setFormState(false);
+                    updateButton.disabled = false;
+                    saveButton.disabled = true;
+                    projectID.disabled = true;
+                } else {
+                    // Enable fields for new entry
+                    setFormState(false);
+                    saveButton.disabled = false;
+                    updateButton.disabled = true;
+                }
+            }
+        });
+
+        saveButton.addEventListener("click", async () => {
+            const data = {
+                ProjectID: projectID.value.trim(),
+                ProjectName: projectName.value.trim(),
+                AssignedTo: assignedTo.value.trim(),
+                AssignmentDate: assignmentDate.value,
+                Deadline: deadline.value
+            };
+            if (Object.values(data).every(v => v)) {
+                const success = await saveProject(data);
+                if (success) alert("Project saved successfully!");
+                resetForm();
+            } else {
+                alert("All fields are required.");
+            }
+        });
+
+        updateButton.addEventListener("click", async () => {
+            const data = {
+                ProjectID: projectID.value.trim(),
+                ProjectName: projectName.value.trim(),
+                AssignedTo: assignedTo.value.trim(),
+                AssignmentDate: assignmentDate.value,
+                Deadline: deadline.value
+            };
+            if (Object.values(data).every(v => v)) {
+                const success = await updateProject(data);
+                if (success) alert("Project updated successfully!");
+                resetForm();
+            } else {
+                alert("All fields are required.");
+            }
+        });
+
+        resetButton.addEventListener("click", resetForm);
+
+        // Initialize form
+        resetForm();
+    </script>
+</body>
+</html>
